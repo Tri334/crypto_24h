@@ -1,4 +1,3 @@
-import requests
 import math
 def getFeeFuture(actual_usdt,funding_fee,cycle,leverage):
     fee = (funding_fee)/100
@@ -11,7 +10,7 @@ def binanceProfitFuture(actual_usdt,funding_fee,cyle_pay,leverage,tp_percent,fee
         fee_buy = (actual_usdt * leverage * fee_maker_taker/100)
         profit = (actual_usdt) * tp_percent/100
         fee_sell = (profit * leverage * fee_maker_taker/100)
-        clean_profit =  profit - fee_buy - get_fee
+        clean_profit =  profit - fee_buy - get_fee - fee_sell
         stop_loss_have =  actual_usdt * stop_loss/100 * leverage
         print('\n')
         print('Actual Margin:')
@@ -32,11 +31,13 @@ def binanceProfitFuture(actual_usdt,funding_fee,cyle_pay,leverage,tp_percent,fee
         print(round(get_fee + fee_buy,5))
         print('================')
         print('Stop Loss:')
-        print(round(stop_loss_have+get_fee+fee_buy,5))
+        print(round(stop_loss_have+get_fee+fee_buy+fee_sell,5))
         print('Profit Sebelum Fee:')
         print(round(profit,5))
         print('Profit:')
         print(round(clean_profit,5))
+        # print('Total Dana Profit:')
+        # print(actual_usdt+round(clean_profit,5))
 
 
 def tokoProfitSpot(toko_usdt,tp):
@@ -54,20 +55,23 @@ def tokoProfitSpot(toko_usdt,tp):
     print(round(toko_sell_fee,5))
     print('Sell Loss/Profit:')
     print(round(toko_final_asset,5))
-    
+def format_with_commas(value):
+    return "{:,.2f}".format(value)
+
 if __name__ == "__main__":
     actual_usdt = 5
-    funding_fee = 0.01
-    leverage = 125
-    fee_maker_taker = 0.05
+    funding_fee = 0.001
+    leverage = 100
+    fee_maker_taker = 0.04/100 * leverage
     
     hourly_funding_fee = 8
-    hour_sell = 24 * 3
+    hour_sell = 3
     
     cyle_pay = hour_sell//hourly_funding_fee
     
-    tp_percent = 3
-    stop_loss = 1
+    tp_percent = 0.5
+    stop_loss = 0.0
+    
     tp_lv_percentage = tp_percent * leverage
     
     binanceProfitFuture(actual_usdt,funding_fee,cyle_pay,leverage,tp_lv_percentage,fee_maker_taker,stop_loss)
@@ -76,7 +80,30 @@ if __name__ == "__main__":
 
     toko_usdt = 100
     # tokoProfitSpot(toko_usdt,tp)
+
+    print('============')
+    modal = 5
+    fullgame = 5.4
+    halfgame = fullgame/2
+    full_time = 21 - 7
     
+    usd_to_idr = float(16248.91) 
+    money_today = 5000000
+    monthly_money = money_today/usd_to_idr
+    print(f'Day Money From Work: {monthly_money/31} ')
+    full_time_month = format_with_commas(float(modal*fullgame*20) * usd_to_idr)
+    half_time_month = format_with_commas(float(modal*halfgame*20) * usd_to_idr)
+    per_year_expected = format_with_commas (float(modal*halfgame*20) * usd_to_idr * 12) 
+    print(f'Modal: {modal} ')
+    print(f'Fullday: {modal*fullgame} ')
+    print(f'Halfday: {modal*halfgame} ')
+    print(f'Jam Kerja: {full_time} ')
+    print(f"Full time 1 Bulan: {modal*fullgame*20}")
+    print(f"Half Full time 1 Bulan: {modal*halfgame*20}")
+    print(f"Full time 1 Bulan: {full_time_month}")
+    print(f"Half Full time 1 Bulan: {half_time_month}")
     
+    print(f"Expected Income 1 Year: {per_year_expected}")
     
-    
+    print(f"Income Work Monthly after Tax:{round(monthly_money,2)}")
+    print(f"How Many tries:{math.floor(round(monthly_money/modal,1))}")
