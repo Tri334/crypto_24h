@@ -32,14 +32,14 @@ class TradingConfig:
     months: int = 100
     trades_per_day: int = 2
     risk_percent: float = 0.10
-    win_rate: float = 0.60
+    win_rate: float = 0.58
     simulations: int = 3
     max_months: int = 12  # Maximum months to run simulation (5 years)
 
 @dataclass
 class LeverageConfig:
     """Configuration class for leverage settings"""
-    initial_leverage: int = 50
+    initial_leverage: int = 10
     initial_max_margin: int = 10000
     upgraded_leverage: int = 100
     upgraded_max_margin: int = 500000
@@ -58,10 +58,10 @@ class MilestoneConfig:
 @dataclass
 class BackupConfig:
     """Configuration class for backup strategy"""
-    backup_activation_threshold: float = 3500.0  # When balance hits this, create backup
+    backup_activation_threshold: float = 4000.0  # When balance hits this, create backup
     backup_amount: float = 1500.0  # Amount to take as backup
     max_backup: float = 1500.0  # Maximum backup amount
-    recovery_threshold: float = 1000.0  # When balance hits this, use all backup
+    recovery_threshold: float = 1500.0  # When balance hits this, use all backup
 
 
 
@@ -89,7 +89,7 @@ class TradingSimulator:
     def calculate_profit_loss(self, risk_amount: float, outcome: str, reward_ratio: float) -> float:
         """Calculate profit/loss for a trade"""
         if outcome == "Win":
-            return risk_amount * reward_ratio
+            return risk_amount * reward_ratio * 0.9  # Profit reduced by 10%
         else:
             return -risk_amount * 1.1  # Loss with 10% additional cost
     
@@ -250,22 +250,22 @@ class TradingSimulator:
         return pd.DataFrame(trade_log), milestone_dates, balance, first_trade_date, last_trade_date
     
     def _apply_backup_strategy(self, balance: float, backup_funds: float, backup_created: bool) -> Tuple[float, float, bool]:
-        """Apply backup strategy: create backup when balance hits 3500, recover when balance hits 1000"""
+        """Apply backup strategy: pour backup at 1500, create backup at 4000"""
         
-        # Create backup when balance hits 3500
-        if not backup_created and balance >= self.backup_config.backup_activation_threshold:
+        # Recovery: when balance hits 1500, pour all backup
+        if balance >= self.backup_config.recovery_threshold and backup_funds > 0:
+            recovery_amount = backup_funds
+            backup_funds = 0.0
+            balance += recovery_amount
+            logger.info(f"🆘 Recovery: Balance hit ${self.backup_config.recovery_threshold:.0f}! Added ${recovery_amount:.2f} from backup → Balance ${balance:.2f}")
+        
+        # Create backup when balance hits 4000
+        if balance >= self.backup_config.backup_activation_threshold:
             backup_amount = min(self.backup_config.backup_amount, balance)
             backup_funds += backup_amount
             balance -= backup_amount
             backup_created = True
             logger.info(f"💰 Backup created: Balance hit ${self.backup_config.backup_activation_threshold:.0f}! Took ${backup_amount:.2f} → Balance ${balance:.2f}, Backup ${backup_funds:.2f}")
-        
-        # Recovery: when balance drops to 1000, use all backup
-        if balance <= self.backup_config.recovery_threshold and backup_funds > 0:
-            recovery_amount = backup_funds
-            backup_funds = 0.0
-            balance += recovery_amount
-            logger.info(f"🆘 Recovery: Balance ${balance - recovery_amount:.2f} below ${self.backup_config.recovery_threshold:.0f}! Added ${recovery_amount:.2f} from backup → Balance ${balance:.2f}")
         
         return balance, backup_funds, backup_created
     
@@ -366,9 +366,10 @@ def main():
     trading_config = TradingConfig()
     leverage_config = LeverageConfig()
     milestone_config = MilestoneConfig()
+    backup_config = BackupConfig()
     
     # Create simulator and reporter
-    simulator = TradingSimulator(trading_config, leverage_config, milestone_config)
+    simulator = TradingSimulator(trading_config, leverage_config, milestone_config, backup_config)
     reporter = ExcelReporter()
     
     # Run simulations
